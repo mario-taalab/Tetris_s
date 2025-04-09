@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tetris</title>
+  <style>
+    body {
+      background: url("https://wallpapersok.com/images/high/tetris-multicolored-pattern-4u7ed6koskqhcez1.webp") no-repeat center center fixed;
+      background-size: cover;
+      margin: 0;
+      padding: 0;
+      font-family: monospace;
+    }
+    canvas {
+      display: block;
+      margin: 40px auto;
+      padding: 5px;
+      background: #111; /* Dark background for high contrast */
+      border: 3px solid #29ffc6; /* Neon aqua border */
+      border-radius: 7px;
+      box-shadow: 0 0 20px rgba(41, 255, 198, 0.8), 0 0 15px rgba(255, 0, 255, 0.5);
+    }
+    /* Sidebar (Left) */
+    #sidebar {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 320px;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: #fff;
+      border: 2px solid #ff00ff;
+      box-shadow: 0 0 10px #ff00ff;
+      border-radius: 20px;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    /* Info container for score and next piece */
+    #infoContainer {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    #tot {
+      font-size: 25px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    /* Next Piece Preview */
+    #previewBox {
+      background-color: rgba(0, 0, 0, 0.7);
+      color: #fff;
+      border: 2px solid #ff00ff;
+      box-shadow: 0 0 10px #ff00ff;
+      border-radius: 20px;
+      padding: 10px;
+    }
+    #previewBox h2 {
+      font-size: 20px;
+      margin: 0;
+    }
+    #previewBox canvas {
+      margin-top: 10px;
+    }
+    /* Control Buttons */
+    #controlButtons {
+      display: flex;
+      justify-content: space-between;
+      margin: 10px 0;
+    }
+    #controlButtons button {
+      width: 48%;
+      font-weight: bold;
+      background-color: #29ffc6;
+      color: #000;
+      transition: all 0.3s ease;
+      border: 9px double black;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    #controlButtons button:hover {
+      background-color: #24e2b2;
+      transform: scale(1.05);
+    }
+    /* How to Play Instructions */
+    #instructionContainer {
+      margin-bottom: 20px;
+    }
+    #instructionContainer h2 {
+      font-size: 20px;
+      margin: 0;
+    }
+    #instructionContainer p {
+      font-size: 14px;
+      margin: 10px 0;
+      line-height: 1.5;
+    }
+    /* High Scores Block (Upper-Right) */
+    #highScores {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 250px;
+      background-color: rgba(0, 0, 0, 0.7);
+      border: 2px solid #ff00ff;
+      border-radius: 20px;
+      padding: 10px;
+      color: #fff;
+      text-align: center;
+      box-shadow: 0 0 10px #ff00ff;
+    }
+    #highScores h2 {
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
+    #highScores ol {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    #highScores li {
+      font-size: 16px;
+      margin: 5px 0;
+    }
+    /* Overlay for Pause & Game Over */
+    #myselect {
+      position: absolute;
+      background: #238888;
+      border: 6px double cyan;
+      border-radius: 15px;
+      width: 320px;
+      height: 300px;
+      top: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      z-index: 10;
+      padding-top: 20px;
+      box-sizing: border-box;
+      animation: fadeIn 0.5s ease-out;
+    }
+    #myselect h1 {
+      color: red;
+      margin-bottom: 20px;
+      font-size: 28px;
+    }
+    #myselect p {
+      font-size: 20px;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+    #myselect input[type="text"] {
+      padding: 8px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: 2px solid #fff;
+      margin-bottom: 20px;
+      width: 80%;
+    }
+    #myselect button {
+      background: #0f2a9b;
+      border: 9px double black;
+      border-radius: 10px;
+      margin: 10px;
+      width: 120px;
+      height: 50px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    #myselect button:hover {
+      background: lightblue;
+      transform: scale(1.05);
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    /* Flash effect for line clear */
+    #page.flash {
+      animation: flash 0.2s;
+    }
+    @keyframes flash {
+      0% { opacity: 1; }
+      50% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar (Left) -->
+  <div id="sidebar">
+    <div id="infoContainer">
+      <div id="tot">
+        Score: <span id="score">0</span><br>
+        Lines: <span id="lin">0</span><br>
+        Level: <span id="level">1</span><br>
+        Status: <span id="play">play</span>
+      </div>
+      <div id="previewBox">
+        <h2>Next Piece</h2>
+        <canvas id="nextpiece" width="150" height="150" style="background-color: rgba(0,0,0,0.7); border: 2px solid #ff00ff; box-shadow: 0 0 10px #ff00ff; border-radius: 7px;"></canvas>
+      </div>
+    </div>
+    <div id="controlButtons">
+      <button id="ps" onclick="showPauseOverlay(); pause();">PAUSE</button>
+      <button id="reset" onclick="replay();">RESET</button>
+    </div>
+    <div id="instructionContainer">
+      <h2>How to Play</h2>
+      <p>
+        • Use the ← button to move left.<br>
+        • Use the → button to move right.<br>
+        • Use the ↑ button to rotate the piece.<br>
+        • Use the ↓ button to drop the piece faster.
+      </p>
+    </div>
+  </div>
+  
+  <!-- High Scores Block (Upper-Right) -->
+  <div id="highScores">
+    <h2>High Scores</h2>
+    <ol>
+      <li>1. AAA - 0</li>
+      <li>2. BBB - 0</li>
+      <li>3. CCC - 0</li>
+      <li>4. DDD - 0</li>
+      <li>5. EEE - 0</li>
+    </ol>
+  </div>
+  
+  <!-- Main Game Canvas (Centered) -->
+  <div id="page">
+    <canvas id="tetris" width="300" height="600"></canvas>
+  </div>
+  
+  <!-- Overlay for Pause & Game Over -->
+  <div id="select"></div>
+  
+  <script>
+    // Global High Scores Array.
+    let highScores = [
+      { name: "AAA", score: 0 },
+      { name: "BBB", score: 0 },
+      { name: "CCC", score: 0 },
+      { name: "DDD", score: 0 },
+      { name: "EEE", score: 0 }
+    ];
+    
+    function updateHighScoresDisplay() {
+      let list = "";
+      for (let i = 0; i < highScores.length; i++) {
+        list += "<li>" + (i + 1) + ". " + highScores[i].name + " - " + highScores[i].score + "</li>";
+      }
+      document.getElementById("highScores").innerHTML = "<h2>High Scores</h2><ol>" + list + "</ol>";
+    }
+    
+    // Helper: Lighten/Darken a hex color.
+    function shadeColor(color, percent) {
+      var num = parseInt(color.slice(1), 16),
+          amt = Math.round(2.55 * percent),
+          R = (num >> 16) + amt,
+          G = ((num >> 8) & 0x00FF) + amt,
+          B = (num & 0x0000FF) + amt;
+      return "#" + (
+        0x1000000 +
+        (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+        (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
+        (B < 255 ? (B < 1 ? 0 : B) : 255)
+      ).toString(16).slice(1);
+    }
+    
+    // 3D-effect drawSquare function.
+    function drawSquare(x, y, color) {
+      let lightColor = shadeColor(color, 40);
+      let darkColor = shadeColor(color, -30);
+      let grad = ctx.createLinearGradient(x * SQ, y * SQ, (x + 1) * SQ, (y + 1) * SQ);
+      grad.addColorStop(0, lightColor);
+      grad.addColorStop(1, darkColor);
+      ctx.fillStyle = grad;
+      ctx.fillRect(x * SQ, y * SQ, SQ, SQ);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#ffffff";
+      ctx.strokeRect(x * SQ, y * SQ, SQ, SQ);
+    }
+    
+    // Overlay functions.
+    function showPauseOverlay() {
+      var l = (document.body.clientWidth - 320) / 2;
+      var sel = "<div id='myselect'>" +
+                "<h1>PAUSED</h1><br>" +
+                "<button onclick='resumeAndContinue()'>RESUME</button>" +
+                "<button onclick='replay()'>RESET</button>" +
+                "</div>";
+      window.select.innerHTML = sel;
+      window.select.style.left = l;
+      document.getElementById("page").style.opacity = 0.1;
+    }
+    
+    function resumeAndContinue() {
+      window.select.innerHTML = "";
+      document.getElementById("page").style.opacity = 1;
+      lastTime = 0;
+      requestAnimationFrame(gameLoop);
+    }
+    
+    function showGameOverOverlay(finalScore) {
+      var l = (document.body.clientWidth - 320) / 2;
+      var sel = "<div id='myselect'>" +
+                "<h1>GAME OVER</h1><br>" +
+                "<p>Score: " + finalScore + "</p>" +
+                "<p>Enter your name:</p>" +
+                "<input id='playerName' type='text' placeholder='Your Name'>" +
+                "<br><button onclick='submitHighScore(" + finalScore + ")'>PLAY AGAIN</button>" +
+                "</div>";
+      window.select.innerHTML = sel;
+      window.select.style.left = l;
+      document.getElementById("page").style.opacity = 0.1;
+    }
+    
+    function submitHighScore(score) {
+      var playerName = document.getElementById("playerName").value;
+      if (!playerName) { playerName = "Anonymous"; }
+      highScores.push({ name: playerName, score: score });
+      highScores.sort(function(a, b) { return b.score - a.score; });
+      highScores = highScores.slice(0, 5);
+      updateHighScoresDisplay();
+      window.select.innerHTML = "";
+      document.getElementById("page").style.opacity = 1;
+      replay();
+    }
+    
+    // Improved rotation (with simple wall kicks).
+    Piece.prototype.rotate = function() {
+      let nextPattern = this.tetromino[(this.tetrominoN + 1) % this.tetromino.length];
+      if (!this.collision(0, 0, nextPattern)) {
+        this.unDraw();
+        this.tetrominoN = (this.tetrominoN + 1) % this.tetromino.length;
+        this.activeTetromino = this.tetromino[this.tetrominoN];
+        this.draw();
+        return;
+      }
+      if (!this.collision(-1, 0, nextPattern)) {
+        this.unDraw();
+        this.x -= 1;
+        this.tetrominoN = (this.tetrominoN + 1) % this.tetromino.length;
+        this.activeTetromino = this.tetromino[this.tetrominoN];
+        this.draw();
+        return;
+      }
+      if (!this.collision(1, 0, nextPattern)) {
+        this.unDraw();
+        this.x += 1;
+        this.tetrominoN = (this.tetrominoN + 1) % this.tetromino.length;
+        this.activeTetromino = this.tetromino[this.tetrominoN];
+        this.draw();
+        return;
+      }
+    };
+    
+    // Game loop using requestAnimationFrame.
+    
+    function gameLoop(timestamp) {
+      if (!lastTime) lastTime = timestamp;
+      let delta = timestamp - lastTime;
+      let dropInterval = 1000 * Math.pow(0.9, level - 1);
+      if (delta > dropInterval) {
+        p.moveDown();
+        lastTime = timestamp;
+      }
+      if (!gameOver) {
+        requestAnimationFrame(gameLoop);
+      }
+    }
+    
+    // Tetromino shapes definitions.
+    const I = [
+      [
+        [0, 0, 0, 0],
+        [1, 1, 1, 1],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0]
+      ],
+      [
+        [0, 0, 1, 0],
+        [0, 0, 1, 0],
+        [0, 0, 1, 0],
+        [0, 0, 1, 0]
+      ],
+      [
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [1, 1, 1, 1],
+        [0, 0, 0, 0]
+      ],
+      [
+        [0, 1, 0, 0],
+        [0, 1, 0, 0],
+        [0, 1, 0, 0],
+        [0, 1, 0, 0]
+      ]
+    ];
+    const J = [
+      [
+        [1, 0, 0],
+        [1, 1, 1],
+        [0, 0, 0]
+      ],
+      [
+        [0, 1, 1],
+        [0, 1, 0],
+        [0, 1, 0]
+      ],
+      [
+        [0, 0, 0],
+        [1, 1, 1],
+        [0, 0, 1]
+      ],
+      [
+        [0, 1, 0],
+        [0, 1, 0],
+        [1, 1, 0]
+      ]
+    ];
+    const L = [
+      [
+        [0, 0, 1],
+        [1, 1, 1],
+        [0, 0, 0]
+      ],
+      [
+        [0, 1, 0],
+        [0, 1, 0],
+        [0, 1, 1]
+      ],
+      [
+        [0, 0, 0],
+        [1, 1, 1],
+        [1, 0, 0]
+      ],
+      [
+        [1, 1, 0],
+        [0, 1, 0],
+        [0, 1, 0]
+      ]
+    ];
+    const O = [
+      [
+        [0, 0, 0, 0],
+        [0, 1, 1, 0],
+        [0, 1, 1, 0],
+        [0, 0, 0, 0]
+      ]
+    ];
+    const S = [
+      [
+        [0, 1, 1],
+        [1, 1, 0],
+        [0, 0, 0]
+      ],
+      [
+        [0, 1, 0],
+        [0, 1, 1],
+        [0, 0, 1]
+      ],
+      [
+        [0, 0, 0],
+        [0, 1, 1],
+        [1, 1, 0]
+      ],
+      [
+        [1, 0, 0],
+        [1, 1, 0],
+        [0, 1, 0]
+      ]
+    ];
+    const T = [
+      [
+        [0, 1, 0],
+        [1, 1, 1],
+        [0, 0, 0]
+      ],
+      [
+        [0, 1, 0],
+        [0, 1, 1],
+        [0, 1, 0]
+      ],
+      [
+        [0, 0, 0],
+        [1, 1, 1],
+        [0, 1, 0]
+      ],
+      [
+        [0, 1, 0],
+        [1, 1, 0],
+        [0, 1, 0]
+      ]
+    ];
+    const Z = [
+      [
+        [1, 1, 0],
+        [0, 1, 1],
+        [0, 0, 0]
+      ],
+      [
+        [0, 0, 1],
+        [0, 1, 1],
+        [0, 1, 0]
+      ],
+      [
+        [0, 0, 0],
+        [1, 1, 0],
+        [0, 1, 1]
+      ],
+      [
+        [0, 1, 0],
+        [1, 1, 0],
+        [1, 0, 0]
+      ]
+    ];
+    // Pieces with neon colors.
+    const PIECES = [
+      [L, '#FFAA00'],
+      [J, '#0000FF'],
+      [O, '#FFFF00'],
+      [T, '#A900FF'],
+      [S, '#00FF00'],
+      [I, '#00FFFF'],
+      [Z, '#FF0000']
+    ];
+    
+    // Get main canvas and preview contexts.
+    const cvs = document.getElementById("tetris");
+    const ctx = cvs.getContext("2d");
+    const nextCanvas = document.getElementById("nextpiece");
+    const nextCtx = nextCanvas.getContext("2d");
+    const previewSQ = 20;
+    
+    const ROW = 20;
+    const COL = COLUMN = 10;
+    const SQ = squareSize = 30;
+    const VACANT = "#2a2a2a";
+    
+    // Draw one square on the main board.
+    function drawSquare(x, y, color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(x * SQ, y * SQ, SQ, SQ);
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "#ffffff";
+      ctx.strokeRect(x * SQ, y * SQ, SQ, SQ);
+    }
+    
+    // Draw the next piece on the preview canvas.
+    function drawNextPiece(piece) {
+      nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+      let offsetX = Math.floor((nextCanvas.width - piece.activeTetromino[0].length * previewSQ) / 2);
+      let offsetY = Math.floor((nextCanvas.height - piece.activeTetromino.length * previewSQ) / 2);
+      for (let r = 0; r < piece.activeTetromino.length; r++) {
+        for (let c = 0; c < piece.activeTetromino[r].length; c++) {
+          if (piece.activeTetromino[r][c]) {
+            nextCtx.fillStyle = piece.color;
+            nextCtx.fillRect(offsetX + c * previewSQ, offsetY + r * previewSQ, previewSQ, previewSQ);
+            nextCtx.strokeStyle = "#29ffc6";
+            nextCtx.strokeRect(offsetX + c * previewSQ, offsetY + r * previewSQ, previewSQ, previewSQ);
+          }
+        }
+      }
+    }
+    
+    // Initialize the board.
+    let board = [];
+    for (let r = 0; r < ROW; r++) {
+      board[r] = [];
+      for (let c = 0; c < COL; c++) {
+        board[r][c] = VACANT;
+      }
+    }
+    function drawBoard() {
+      for (let r = 0; r < ROW; r++) {
+        for (let c = 0; c < COL; c++) {
+          drawSquare(c, r, board[r][c]);
+        }
+      }
+    }
+    drawBoard();
+    
+    function randomPiece() {
+      let r = Math.floor(Math.random() * PIECES.length);
+      return new Piece(PIECES[r][0], PIECES[r][1]);
+    }
+    let p = randomPiece();
+    let nextPiece = randomPiece();
+    drawNextPiece(nextPiece);
+    
+    // Piece constructor.
+    function Piece(tetromino, color) {
+      this.tetromino = tetromino;
+      this.color = color;
+      this.tetrominoN = 0;
+      this.activeTetromino = this.tetromino[this.tetrominoN];
+      this.x = Math.floor((COL - this.activeTetromino[0].length) / 2);
+      this.y = -1;
+    }
+    
+    function replay() {
+      score = 0;
+      lines = 0;
+      level = 1;
+      gameOver = false;
+      exit = true;
+      exxit = true;
+      for (let r = 0; r < ROW; r++) {
+        for (let c = 0; c < COL; c++) {
+          board[r][c] = VACANT;
+        }
+      }
+      drawBoard();
+      p = randomPiece();
+      nextPiece = randomPiece();
+      drawNextPiece(nextPiece);
+      window.select.innerHTML = "";
+      document.getElementById("page").style.opacity = 1;
+      lastTime = 0;
+      requestAnimationFrame(gameLoop);
+    }
+    
+    // Piece methods.
+    Piece.prototype.fill = function(color) {
+      for (let r = 0; r < this.activeTetromino.length; r++) {
+        for (let c = 0; c < this.activeTetromino.length; c++) {
+          if (this.activeTetromino[r][c]) {
+            drawSquare(this.x + c, this.y + r, color);
+          }
+        }
+      }
+    };
+    Piece.prototype.draw = function() {
+      this.fill(this.color);
+    };
+    Piece.prototype.unDraw = function() {
+      this.fill(VACANT);
+    };
+    Piece.prototype.moveDown = function() {
+      if (!this.collision(0, 1, this.activeTetromino)) {
+        this.unDraw();
+        this.y++;
+        this.draw();
+      } else {
+        this.lock();
+        p = nextPiece;
+        nextPiece = randomPiece();
+        p.x = Math.floor((COL - p.activeTetromino[0].length) / 2);
+        drawNextPiece(nextPiece);
+        drawBoard();
+      }
+    };
+    Piece.prototype.moveRight = function() {
+      if (!this.collision(1, 0, this.activeTetromino)) {
+        this.unDraw();
+        this.x++;
+        this.draw();
+      }
+    };
+    Piece.prototype.moveLeft = function() {
+      if (!this.collision(-1, 0, this.activeTetromino)) {
+        this.unDraw();
+        this.x--;
+        this.draw();
+      }
+    };
+    // Improved rotate with wall kicks.
+    Piece.prototype.rotate = function() {
+      let nextPattern = this.tetromino[(this.tetrominoN + 1) % this.tetromino.length];
+      if (!this.collision(0, 0, nextPattern)) {
+        this.unDraw();
+        this.tetrominoN = (this.tetrominoN + 1) % this.tetromino.length;
+        this.activeTetromino = this.tetromino[this.tetrominoN];
+        this.draw();
+        return;
+      }
+      if (!this.collision(-1, 0, nextPattern)) {
+        this.unDraw();
+        this.x -= 1;
+        this.tetrominoN = (this.tetrominoN + 1) % this.tetromino.length;
+        this.activeTetromino = this.tetromino[this.tetrominoN];
+        this.draw();
+        return;
+      }
+      if (!this.collision(1, 0, nextPattern)) {
+        this.unDraw();
+        this.x += 1;
+        this.tetrominoN = (this.tetrominoN + 1) % this.tetromino.length;
+        this.activeTetromino = this.tetromino[this.tetrominoN];
+        this.draw();
+        return;
+      }
+    };
+    
+    let score = 0;
+    let lines = 0;
+    let level = 1;
+    let gameOver = false;
+    let exit = true;
+    let exxit = true;
+    
+    Piece.prototype.lock = function() {
+      for (let r = 0; r < this.activeTetromino.length; r++) {
+        for (let c = 0; c < this.activeTetromino.length; c++) {
+          if (!this.activeTetromino[r][c])
+            continue;
+          // Lose condition: if a piece locks above the board.
+          if (this.y + r < 0) {
+            document.getElementById("page").style.opacity = 0.1;
+            showGameOverOverlay(score);
+            gameOver = true;
+            break;
+          }
+          board[this.y + r][this.x + c] = this.color;
+        }
+      }
+      // Check full rows.
+      for (let r = 0; r < ROW; r++) {
+        let isRowFull = true;
+        for (let c = 0; c < COL; c++) {
+          isRowFull = isRowFull && (board[r][c] != VACANT);
+        }
+        if (isRowFull) {
+          // Apply flash effect.
+          document.getElementById("page").classList.add("flash");
+          setTimeout(() => {
+            document.getElementById("page").classList.remove("flash");
+          }, 200);
+          for (let y = r; y > 1; y--) {
+            for (let c = 0; c < COL; c++) {
+              board[y][c] = board[y - 1][c];
+            }
+          }
+          for (let c = 0; c < COL; c++) {
+            board[0][c] = VACANT;
+          }
+          lines++;
+          score += (lines >= 7) ? 100 : 10;
+          if (lines % 7 === 0) {
+            level++;
+          }
+          drawBoard();
+        }
+      }
+      document.getElementById("score").innerHTML = score;
+      document.getElementById("lin").innerHTML = lines;
+      document.getElementById("level").innerHTML = level;
+    };
+    
+    Piece.prototype.collision = function(x, y, piece) {
+      for (let r = 0; r < piece.length; r++) {
+        for (let c = 0; c < piece.length; c++) {
+          if (!piece[r][c])
+            continue;
+          let newX = this.x + c + x;
+          let newY = this.y + r + y;
+          if (newX < 0 || newX >= COL || newY >= ROW)
+            return true;
+          if (newY < 0)
+            continue;
+          if (board[newY][newX] != VACANT)
+            return true;
+        }
+      }
+      return false;
+    };
+    
+    document.addEventListener("keydown", CONTROL);
+    function CONTROL(event) {
+      if (event.keyCode == 37) {
+        p.moveLeft();
+      } else if (event.keyCode == 38) {
+        p.rotate();
+      } else if (event.keyCode == 39) {
+        p.moveRight();
+      } else if (event.keyCode == 40) {
+        p.moveDown();
+      }
+    }
+    
+    // Game Loop using requestAnimationFrame.
+   // Declare the game loop timer variable once.
+let lastTime = 0;
+
+function gameLoop(timestamp) {
+  if (!lastTime) lastTime = timestamp;
+  let delta = timestamp - lastTime;
+  let dropInterval = 1000 * Math.pow(0.9, level - 1);
+  if (delta > dropInterval) {
+    p.moveDown();
+    lastTime = timestamp;
+  }
+  if (!gameOver) {
+    requestAnimationFrame(gameLoop);
+  }
+}
+
+// Start the game loop.
+requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>
