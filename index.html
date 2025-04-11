@@ -4,7 +4,7 @@
   <title>Tetris</title>
   <style>
     body {
-      background: url("https://wallpapersok.com/images/high/tetris-multicolored-pattern-4u7ed6koskqhcez1.webp") no-repeat center center fixed;
+      background: url("assets/pxfuel.jpg") no-repeat center center fixed;
       background-size: cover;
       margin: 0;
       padding: 0;
@@ -17,7 +17,7 @@
       background: #111; /* Dark background for high contrast */
       border: 3px solid #29ffc6; /* Neon aqua border */
       border-radius: 7px;
-      box-shadow: 0 0 20px rgba(41, 255, 198, 0.8), 0 0 15px rgba(255, 0, 255, 0.5);
+      box-shadow: 0 0 20px rgba(41,255,198,0.8), 0 0 15px rgba(255,0,255,0.5);
     }
     /* Sidebar (Left) */
     #sidebar {
@@ -25,7 +25,7 @@
       top: 10px;
       left: 10px;
       width: 320px;
-      background-color: rgba(0, 0, 0, 0.7);
+      background-color: rgba(0,0,0,0.7);
       color: #fff;
       border: 2px solid #ff00ff;
       box-shadow: 0 0 10px #ff00ff;
@@ -45,7 +45,7 @@
     }
     /* Next Piece Preview */
     #previewBox {
-      background-color: rgba(0, 0, 0, 0.7);
+      background-color: rgba(0,0,0,0.7);
       color: #fff;
       border: 2px solid #ff00ff;
       box-shadow: 0 0 10px #ff00ff;
@@ -98,7 +98,7 @@
       top: 10px;
       right: 10px;
       width: 250px;
-      background-color: rgba(0, 0, 0, 0.7);
+      background-color: rgba(0,0,0,0.7);
       border: 2px solid #ff00ff;
       border-radius: 20px;
       padding: 10px;
@@ -135,6 +135,11 @@
       padding-top: 20px;
       box-sizing: border-box;
       animation: fadeIn 0.5s ease-out;
+    }
+    /* Class for Game Over overlay with larger height */
+    #myselect.gameover {
+      width: 320px;
+      height: 400px;
     }
     #myselect h1 {
       color: red;
@@ -181,6 +186,28 @@
       0% { opacity: 1; }
       50% { opacity: 0.7; }
       100% { opacity: 1; }
+    }
+    /* Audio Controls Board (Lower-Right Corner) */
+    #audioControls {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background-color: rgba(0,0,0,0.7);
+      border: 2px solid #ff00ff;
+      border-radius: 20px;
+      padding: 10px;
+      display: flex;
+      gap: 10px;
+      box-shadow: 0 0 10px #ff00ff;
+    }
+    #audioControls button {
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    #audioControls img {
+      width: 30px;
+      height: 30px;
     }
   </style>
 </head>
@@ -234,7 +261,71 @@
   <!-- Overlay for Pause & Game Over -->
   <div id="select"></div>
   
+  <!-- Audio Controls Board (Lower-Right Corner) -->
+  <div id="audioControls">
+    <button id="musicToggle" onclick="toggleMusic()">
+      <img src="assets/m-off.png" alt="Music" id="musicIcon">
+    </button>
+    <button id="soundToggle" onclick="toggleSounds()">
+      <img src="assets/s-off.png" alt="Sounds" id="soundIcon">
+    </button>
+  </div>
+  
   <script>
+    // ---------------- SOUND OBJECTS ----------------
+    // Ensure that the asset file paths are correct.
+    const bgMusic = new Audio("assets/bgMusic.mp3");
+    bgMusic.loop = true;
+    bgMusic.volume = 0.4;
+    document.body.addEventListener('click', function startMusic(){
+      bgMusic.play();
+      document.body.removeEventListener('click', startMusic);
+    });
+    
+    const clearSound = new Audio("assets/clear.mp3");
+    clearSound.volume = 0.6;
+    
+    const gameOverSound = new Audio("assets/gameover.mp3");
+    gameOverSound.volume = 0.7;
+    
+    // Removed hard drop sound.
+    // New landing sound when a piece lands.
+    const landingSound = new Audio("assets/landing.mp3");
+    landingSound.volume = 0.7;
+    
+    const pauseSound = new Audio("assets/pause.mp3");
+    pauseSound.volume = 0.5;
+    
+    const rotateSound = new Audio("assets/rotate.mp3");
+    rotateSound.volume = 0.5;
+    
+    const softDropSound = new Audio("assets/soft-drop.mp3");
+    softDropSound.volume = 0.5;
+    // -------------------------------------------------
+    
+    // Variables for audio control.
+    let musicMuted = false;
+    let soundsMuted = false;
+    
+    function toggleMusic() {
+      musicMuted = !musicMuted;
+      bgMusic.muted = musicMuted;
+      const musicIcon = document.getElementById("musicIcon");
+      musicIcon.src = musicMuted ? "assets/m-on.png" : "assets/m-off.png";
+    }
+    
+    function toggleSounds() {
+      soundsMuted = !soundsMuted;
+      clearSound.muted = soundsMuted;
+      gameOverSound.muted = soundsMuted;
+      landingSound.muted = soundsMuted;
+      pauseSound.muted = soundsMuted;
+      rotateSound.muted = soundsMuted;
+      softDropSound.muted = soundsMuted;
+      const soundIcon = document.getElementById("soundIcon");
+      soundIcon.src = soundsMuted ? "assets/s-on.png" : "assets/s-off.png";
+    }
+    
     // Global High Scores Array.
     let highScores = [
       { name: "AAA", score: 0 },
@@ -252,15 +343,14 @@
       document.getElementById("highScores").innerHTML = "<h2>High Scores</h2><ol>" + list + "</ol>";
     }
     
-    // Helper: Lighten/Darken a hex color.
+    // Helper: Lighten/Darken hex color.
     function shadeColor(color, percent) {
       var num = parseInt(color.slice(1), 16),
           amt = Math.round(2.55 * percent),
           R = (num >> 16) + amt,
           G = ((num >> 8) & 0x00FF) + amt,
           B = (num & 0x0000FF) + amt;
-      return "#" + (
-        0x1000000 +
+      return "#" + (0x1000000 +
         (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
         (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
         (B < 255 ? (B < 1 ? 0 : B) : 255)
@@ -284,12 +374,14 @@
     // Overlay functions.
     function showPauseOverlay() {
       var l = (document.body.clientWidth - 320) / 2;
+      pauseSound.play();
       var sel = "<div id='myselect'>" +
                 "<h1>PAUSED</h1><br>" +
                 "<button onclick='resumeAndContinue()'>RESUME</button>" +
                 "<button onclick='replay()'>RESET</button>" +
                 "</div>";
       window.select.innerHTML = sel;
+      document.getElementById("myselect").classList.remove("gameover");
       window.select.style.left = l;
       document.getElementById("page").style.opacity = 0.1;
     }
@@ -303,6 +395,9 @@
     
     function showGameOverOverlay(finalScore) {
       var l = (document.body.clientWidth - 320) / 2;
+      gameOverSound.play();
+      // Pause background music on game over.
+      bgMusic.pause();
       var sel = "<div id='myselect'>" +
                 "<h1>GAME OVER</h1><br>" +
                 "<p>Score: " + finalScore + "</p>" +
@@ -311,6 +406,7 @@
                 "<br><button onclick='submitHighScore(" + finalScore + ")'>PLAY AGAIN</button>" +
                 "</div>";
       window.select.innerHTML = sel;
+      document.getElementById("myselect").classList.add("gameover");
       window.select.style.left = l;
       document.getElementById("page").style.opacity = 0.1;
     }
@@ -327,7 +423,7 @@
       replay();
     }
     
-    // Improved rotation (with simple wall kicks).
+    // Improved rotate with wall kicks.
     Piece.prototype.rotate = function() {
       let nextPattern = this.tetromino[(this.tetrominoN + 1) % this.tetromino.length];
       if (!this.collision(0, 0, nextPattern)) {
@@ -335,6 +431,7 @@
         this.tetrominoN = (this.tetrominoN + 1) % this.tetromino.length;
         this.activeTetromino = this.tetromino[this.tetrominoN];
         this.draw();
+        rotateSound.play();
         return;
       }
       if (!this.collision(-1, 0, nextPattern)) {
@@ -343,6 +440,7 @@
         this.tetrominoN = (this.tetrominoN + 1) % this.tetromino.length;
         this.activeTetromino = this.tetromino[this.tetrominoN];
         this.draw();
+        rotateSound.play();
         return;
       }
       if (!this.collision(1, 0, nextPattern)) {
@@ -351,12 +449,13 @@
         this.tetrominoN = (this.tetrominoN + 1) % this.tetromino.length;
         this.activeTetromino = this.tetromino[this.tetrominoN];
         this.draw();
+        rotateSound.play();
         return;
       }
     };
     
     // Game loop using requestAnimationFrame.
-    
+    let lastTime = 0;
     function gameLoop(timestamp) {
       if (!lastTime) lastTime = timestamp;
       let delta = timestamp - lastTime;
@@ -369,153 +468,154 @@
         requestAnimationFrame(gameLoop);
       }
     }
+    requestAnimationFrame(gameLoop);
     
     // Tetromino shapes definitions.
     const I = [
       [
-        [0, 0, 0, 0],
-        [1, 1, 1, 1],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0]
+        [0,0,0,0],
+        [1,1,1,1],
+        [0,0,0,0],
+        [0,0,0,0]
       ],
       [
-        [0, 0, 1, 0],
-        [0, 0, 1, 0],
-        [0, 0, 1, 0],
-        [0, 0, 1, 0]
+        [0,0,1,0],
+        [0,0,1,0],
+        [0,0,1,0],
+        [0,0,1,0]
       ],
       [
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [1, 1, 1, 1],
-        [0, 0, 0, 0]
+        [0,0,0,0],
+        [0,0,0,0],
+        [1,1,1,1],
+        [0,0,0,0]
       ],
       [
-        [0, 1, 0, 0],
-        [0, 1, 0, 0],
-        [0, 1, 0, 0],
-        [0, 1, 0, 0]
+        [0,1,0,0],
+        [0,1,0,0],
+        [0,1,0,0],
+        [0,1,0,0]
       ]
     ];
     const J = [
       [
-        [1, 0, 0],
-        [1, 1, 1],
-        [0, 0, 0]
+        [1,0,0],
+        [1,1,1],
+        [0,0,0]
       ],
       [
-        [0, 1, 1],
-        [0, 1, 0],
-        [0, 1, 0]
+        [0,1,1],
+        [0,1,0],
+        [0,1,0]
       ],
       [
-        [0, 0, 0],
-        [1, 1, 1],
-        [0, 0, 1]
+        [0,0,0],
+        [1,1,1],
+        [0,0,1]
       ],
       [
-        [0, 1, 0],
-        [0, 1, 0],
-        [1, 1, 0]
+        [0,1,0],
+        [0,1,0],
+        [1,1,0]
       ]
     ];
     const L = [
       [
-        [0, 0, 1],
-        [1, 1, 1],
-        [0, 0, 0]
+        [0,0,1],
+        [1,1,1],
+        [0,0,0]
       ],
       [
-        [0, 1, 0],
-        [0, 1, 0],
-        [0, 1, 1]
+        [0,1,0],
+        [0,1,0],
+        [0,1,1]
       ],
       [
-        [0, 0, 0],
-        [1, 1, 1],
-        [1, 0, 0]
+        [0,0,0],
+        [1,1,1],
+        [1,0,0]
       ],
       [
-        [1, 1, 0],
-        [0, 1, 0],
-        [0, 1, 0]
+        [1,1,0],
+        [0,1,0],
+        [0,1,0]
       ]
     ];
     const O = [
       [
-        [0, 0, 0, 0],
-        [0, 1, 1, 0],
-        [0, 1, 1, 0],
-        [0, 0, 0, 0]
+        [0,0,0,0],
+        [0,1,1,0],
+        [0,1,1,0],
+        [0,0,0,0]
       ]
     ];
     const S = [
       [
-        [0, 1, 1],
-        [1, 1, 0],
-        [0, 0, 0]
+        [0,1,1],
+        [1,1,0],
+        [0,0,0]
       ],
       [
-        [0, 1, 0],
-        [0, 1, 1],
-        [0, 0, 1]
+        [0,1,0],
+        [0,1,1],
+        [0,0,1]
       ],
       [
-        [0, 0, 0],
-        [0, 1, 1],
-        [1, 1, 0]
+        [0,0,0],
+        [0,1,1],
+        [1,1,0]
       ],
       [
-        [1, 0, 0],
-        [1, 1, 0],
-        [0, 1, 0]
+        [1,0,0],
+        [1,1,0],
+        [0,1,0]
       ]
     ];
     const T = [
       [
-        [0, 1, 0],
-        [1, 1, 1],
-        [0, 0, 0]
+        [0,1,0],
+        [1,1,1],
+        [0,0,0]
       ],
       [
-        [0, 1, 0],
-        [0, 1, 1],
-        [0, 1, 0]
+        [0,1,0],
+        [0,1,1],
+        [0,1,0]
       ],
       [
-        [0, 0, 0],
-        [1, 1, 1],
-        [0, 1, 0]
+        [0,0,0],
+        [1,1,1],
+        [0,1,0]
       ],
       [
-        [0, 1, 0],
-        [1, 1, 0],
-        [0, 1, 0]
+        [0,1,0],
+        [1,1,0],
+        [0,1,0]
       ]
     ];
     const Z = [
       [
-        [1, 1, 0],
-        [0, 1, 1],
-        [0, 0, 0]
+        [1,1,0],
+        [0,1,1],
+        [0,0,0]
       ],
       [
-        [0, 0, 1],
-        [0, 1, 1],
-        [0, 1, 0]
+        [0,0,1],
+        [0,1,1],
+        [0,1,0]
       ],
       [
-        [0, 0, 0],
-        [1, 1, 0],
-        [0, 1, 1]
+        [0,0,0],
+        [1,1,0],
+        [0,1,1]
       ],
       [
-        [0, 1, 0],
-        [1, 1, 0],
-        [1, 0, 0]
+        [0,1,0],
+        [1,1,0],
+        [1,0,0]
       ]
     ];
-    // Pieces with neon colors.
+    // Pieces with neon hex colors.
     const PIECES = [
       [L, '#FFAA00'],
       [J, '#0000FF'],
@@ -547,7 +647,7 @@
       ctx.strokeRect(x * SQ, y * SQ, SQ, SQ);
     }
     
-    // Draw the next piece on the preview canvas.
+    // Draw the next piece on the preview canvas with borders.
     function drawNextPiece(piece) {
       nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
       let offsetX = Math.floor((nextCanvas.width - piece.activeTetromino[0].length * previewSQ) / 2);
@@ -557,7 +657,8 @@
           if (piece.activeTetromino[r][c]) {
             nextCtx.fillStyle = piece.color;
             nextCtx.fillRect(offsetX + c * previewSQ, offsetY + r * previewSQ, previewSQ, previewSQ);
-            nextCtx.strokeStyle = "#29ffc6";
+            nextCtx.lineWidth = 2;
+            nextCtx.strokeStyle = "#ffffff";
             nextCtx.strokeRect(offsetX + c * previewSQ, offsetY + r * previewSQ, previewSQ, previewSQ);
           }
         }
@@ -618,6 +719,7 @@
       window.select.innerHTML = "";
       document.getElementById("page").style.opacity = 1;
       lastTime = 0;
+      bgMusic.play();
       requestAnimationFrame(gameLoop);
     }
     
@@ -643,6 +745,8 @@
         this.y++;
         this.draw();
       } else {
+        // Play landing sound when the piece lands.
+        landingSound.play();
         this.lock();
         p = nextPiece;
         nextPiece = randomPiece();
@@ -673,6 +777,7 @@
         this.tetrominoN = (this.tetrominoN + 1) % this.tetromino.length;
         this.activeTetromino = this.tetromino[this.tetrominoN];
         this.draw();
+        rotateSound.play();
         return;
       }
       if (!this.collision(-1, 0, nextPattern)) {
@@ -681,6 +786,7 @@
         this.tetrominoN = (this.tetrominoN + 1) % this.tetromino.length;
         this.activeTetromino = this.tetromino[this.tetrominoN];
         this.draw();
+        rotateSound.play();
         return;
       }
       if (!this.collision(1, 0, nextPattern)) {
@@ -689,6 +795,7 @@
         this.tetrominoN = (this.tetrominoN + 1) % this.tetromino.length;
         this.activeTetromino = this.tetromino[this.tetrominoN];
         this.draw();
+        rotateSound.play();
         return;
       }
     };
@@ -705,7 +812,7 @@
         for (let c = 0; c < this.activeTetromino.length; c++) {
           if (!this.activeTetromino[r][c])
             continue;
-          // Lose condition: if a piece locks above the board.
+          // Lose condition: if piece locks above the board.
           if (this.y + r < 0) {
             document.getElementById("page").style.opacity = 0.1;
             showGameOverOverlay(score);
@@ -715,14 +822,15 @@
           board[this.y + r][this.x + c] = this.color;
         }
       }
-      // Check full rows.
+      // Check for full rows.
       for (let r = 0; r < ROW; r++) {
         let isRowFull = true;
         for (let c = 0; c < COL; c++) {
           isRowFull = isRowFull && (board[r][c] != VACANT);
         }
         if (isRowFull) {
-          // Apply flash effect.
+          clearSound.play();
+          // Flash effect on row clear.
           document.getElementById("page").classList.add("flash");
           setTimeout(() => {
             document.getElementById("page").classList.remove("flash");
@@ -775,29 +883,25 @@
       } else if (event.keyCode == 39) {
         p.moveRight();
       } else if (event.keyCode == 40) {
+        softDropSound.play();
         p.moveDown();
       }
     }
     
-    // Game Loop using requestAnimationFrame.
-   // Declare the game loop timer variable once.
-let lastTime = 0;
-
-function gameLoop(timestamp) {
-  if (!lastTime) lastTime = timestamp;
-  let delta = timestamp - lastTime;
-  let dropInterval = 1000 * Math.pow(0.9, level - 1);
-  if (delta > dropInterval) {
-    p.moveDown();
-    lastTime = timestamp;
-  }
-  if (!gameOver) {
+    // Game loop using requestAnimationFrame.
+    function gameLoop(timestamp) {
+      if (!lastTime) lastTime = timestamp;
+      let delta = timestamp - lastTime;
+      let dropInterval = 1000 * Math.pow(0.9, level - 1);
+      if (delta > dropInterval) {
+        p.moveDown();
+        lastTime = timestamp;
+      }
+      if (!gameOver) {
+        requestAnimationFrame(gameLoop);
+      }
+    }
     requestAnimationFrame(gameLoop);
-  }
-}
-
-// Start the game loop.
-requestAnimationFrame(gameLoop);
   </script>
 </body>
 </html>
